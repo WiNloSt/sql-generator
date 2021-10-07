@@ -145,4 +145,26 @@ describe('test from requirements section', () => {
       'SELECT * FROM data WHERE date_joined IS NULL;'
     )
   })
+
+  test('test postgres field, >', () => {
+    expect(generateSql('postgres', fields, { where: ['>', ['field', 4], 35] })).toEqual(
+      'SELECT * FROM data WHERE age > 35;'
+    )
+  })
+
+  test('test postgres field, <, =, and', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: ['and', ['<', ['field', 1], 5], ['=', ['field', 2], 'joe']],
+      })
+    ).toEqual("SELECT * FROM data WHERE id < 5 AND name = 'joe';")
+  })
+
+  test('test postgres field, !=, =, or', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: ['or', ['!=', ['field', 3], '2015-11-01'], ['=', ['field', 1], 456]],
+      })
+    ).toEqual("SELECT * FROM data WHERE date_joined != '2015-11-01' OR id = 456;")
+  })
 })

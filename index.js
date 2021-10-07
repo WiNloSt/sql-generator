@@ -145,11 +145,27 @@ function isNode(node) {
  */
 function createCodeGenerationVisitors(dialect, context) {
   return {
-    and: () => '',
-    or: () => '',
+    and: (results) => {
+      // 1 child
+      // 2 or more child
+      return results.join(' AND ')
+    },
+    or: (results) => {
+      // 1 child
+      // 2 or more child
+      return results.join(' OR ')
+    },
     not: () => '',
-    '<': () => '',
-    '>': () => '',
+    '<': (results) => {
+      const [leftResult, rightResult] = results
+
+      return `${leftResult} < ${rightResult}`
+    },
+    '>': (results) => {
+      const [leftResult, rightResult] = results
+
+      return `${leftResult} > ${rightResult}`
+    },
     '=': (results, nodeChildren) => {
       if (nodeChildren) {
         const [leftResult, rightResult] = results
@@ -167,7 +183,23 @@ function createCodeGenerationVisitors(dialect, context) {
         return `${leftResult} ${createOperand(nodeChildren[1])} ${rightResult}`
       }
     },
-    '!=': () => '',
+    '!=': (results, nodeChildren) => {
+      if (nodeChildren) {
+        const [leftResult, rightResult] = results
+
+        /**
+         * @param {NodeChild} rightChild
+         */
+        function createOperand(rightChild) {
+          if (rightChild === 'nil') {
+            return 'IS NOT'
+          }
+
+          return '!='
+        }
+        return `${leftResult} ${createOperand(nodeChildren[1])} ${rightResult}`
+      }
+    },
     'is-empty': () => '',
     'not-empty': () => '',
     field: (_, nodeChildren) => {
