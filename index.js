@@ -145,15 +145,49 @@ function isNode(node) {
  */
 function createCodeGenerationVisitors(dialect, context) {
   return {
-    and: (results) => {
+    and: (results, nodeChildren) => {
       // 1 child
       // 2 or more child
-      return results.join(' AND ')
+      if (nodeChildren) {
+        return results
+          .map((result, index) => {
+            const nodeChild = nodeChildren[index]
+            if (isNode(nodeChild)) {
+              /** @type {Node} */
+              // @ts-ignore force type casting
+              const node = nodeChild
+              const nodeType = node[0]
+              if (nodeType === 'or') {
+                return `(${result})`
+              }
+            }
+
+            return result
+          })
+          .join(' AND ')
+      }
     },
-    or: (results) => {
+    or: (results, nodeChildren) => {
       // 1 child
       // 2 or more child
-      return results.join(' OR ')
+      if (nodeChildren) {
+        return results
+          .map((result, index) => {
+            const nodeChild = nodeChildren[index]
+            if (isNode(nodeChild)) {
+              /** @type {Node} */
+              // @ts-ignore force type casting
+              const node = nodeChild
+              const nodeType = node[0]
+              if (nodeType === 'and') {
+                return `(${result})`
+              }
+            }
+
+            return result
+          })
+          .join(' OR ')
+      }
     },
     not: () => '',
     '<': (results) => {

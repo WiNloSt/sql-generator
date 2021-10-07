@@ -167,4 +167,28 @@ describe('test from requirements section', () => {
       })
     ).toEqual("SELECT * FROM data WHERE date_joined != '2015-11-01' OR id = 456;")
   })
+
+  test('test nested and or', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: [
+          'and',
+          ['!=', ['field', 3], 'nil'],
+          ['or', ['>', ['field', 4], 25], ['=', ['field', 2], 'Jerry']],
+        ],
+      })
+    ).toEqual("SELECT * FROM data WHERE date_joined IS NOT NULL AND (age > 25 OR name = 'Jerry');")
+  })
+
+  test('test nested or and', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: [
+          'or',
+          ['!=', ['field', 3], 'nil'],
+          ['and', ['>', ['field', 4], 25], ['=', ['field', 2], 'Jerry']],
+        ],
+      })
+    ).toEqual("SELECT * FROM data WHERE date_joined IS NOT NULL OR (age > 25 AND name = 'Jerry');")
+  })
 })
