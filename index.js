@@ -70,20 +70,20 @@ function createWhereClause(dialect, where, fields) {
     fields,
   }
   const traverse = createTraverse(context)
-  const codeGenerationVisitors = createCodeGenerationVisitors(dialect, context)
+  const transformationVisitors = createTransformationVisitors(dialect, context)
+  const transformedWhere = traverse(where, transformationVisitors)
 
-  return ` WHERE ${traverse(where, codeGenerationVisitors)}`
+  const codeGenerationVisitors = createCodeGenerationVisitors(dialect, context)
+  return ` WHERE ${traverse(transformedWhere, codeGenerationVisitors)}`
 }
 
 /**
- * @typedef {{[key in NodeType]: Visitor}} Visitors
- */
-
-/**
+ * @typedef {{[key in NodeType]?: Visitor} & {value: ValueVisitor}} Visitors
+ *
  * @typedef {(results: any[], nodeChildren?: NodeChild[]) => any} Visitor
- */
-
-/**
+ *
+ * @typedef {(value: Value) => any} ValueVisitor
+ *
  * @typedef TraverserContext
  * @property {Dialect} dialect
  * @property {Fields} fields
@@ -103,7 +103,7 @@ function createTraverse(context) {
   return /** @type {Traverser} */ function traverse(node, visitors) {
     if (!isNode(node)) {
       // @ts-ignore
-      return normalizeValue(node)
+      return visitors.value(node)
     }
 
     const [nodeType, ...children] = node
@@ -111,23 +111,26 @@ function createTraverse(context) {
       return traverse(child, visitors)
     })
 
-    return visitors[nodeType](transformedChildren, children)
+    return getVisitor(nodeType, visitors)(transformedChildren, children)
   }
 }
 
 /**
- * @param {Value} value
+ * @param {Operator} nodeType
+ * @param {Visitors} visitors
+ * @returns {Visitor}
  */
-function normalizeValue(value) {
-  if (value === 'nil') {
-    return 'NULL'
-  }
-  if (typeof value === 'string') {
-    return `'${value}'`
+function getVisitor(nodeType, visitors) {
+  /**
+   * @param {any} results
+   */
+  function defaultVisitor(results) {
+    return [nodeType, ...results]
   }
 
-  return value
+  return visitors[nodeType] || defaultVisitor
 }
+
 /**
  *
  * @param {any} node
@@ -270,6 +273,38 @@ function createCodeGenerationVisitors(dialect, context) {
         }
         return quoteCharacter + context.fields[fieldId] + quoteCharacter
       }
+    },
+    value(value) {
+      if (value === 'nil') {
+        return 'NULL'
+      }
+      if (typeof value === 'string') {
+        return `'${value}'`
+      }
+
+      return value
+    },
+  }
+}
+
+/**
+ *
+ * @param {Dialect} dialect
+ * @param {TraverserContext} context
+ * @return {Visitors}
+ */
+function createTransformationVisitors(dialect, context) {
+  return {
+    and(results) {
+      const shouldFlattenNode = results.length === 1
+      if (shouldFlattenNode) {
+        return results[0]
+      }
+
+      return ['and', ...results]
+    },
+    value(value) {
+      return value
     },
   }
 }

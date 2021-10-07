@@ -207,4 +207,12 @@ describe('test from requirements section', () => {
       'SELECT * FROM data WHERE "age" NOT IN (25, 26, 27);'
     )
   })
+
+  test('single and operand', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: ['or', ['!=', ['field', 3], 'nil'], ['and', ['>', ['field', 4], 25]]],
+      })
+    ).toEqual(`SELECT * FROM data WHERE "date_joined" IS NOT NULL OR "age" > 25;`)
+  })
 })
