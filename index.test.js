@@ -48,7 +48,7 @@ test('test sqlserver limit', () => {
   expect(generateSql(dialect, fields, query)).toEqual(`SELECT * TOP 10 FROM data;`)
 })
 
-test.skip('test query', () => {
+test('test postgresql query', () => {
   const dialect = 'postgresql'
   /**
    * @type {import('./index').Query}
