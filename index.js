@@ -255,7 +255,20 @@ function createCodeGenerationVisitors(dialect, context) {
         /** @type {number} */
         // @ts-ignore force type
         const fieldId = nodeChildren[0]
-        return context.fields[fieldId]
+        const quoteCharacter = createQuoteCharacter(dialect)
+
+        /**
+         * @param {Dialect} dialect
+         */
+        function createQuoteCharacter(dialect) {
+          if (dialect === 'mysql') {
+            return '`'
+          }
+
+          // `postgres` and `sqlserver`
+          return '"'
+        }
+        return quoteCharacter + context.fields[fieldId] + quoteCharacter
       }
     },
   }
