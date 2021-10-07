@@ -1,16 +1,16 @@
 /**
- * @typedef {'postgresql'|'mysql'|'sqlserver'} Dialect
+ * @typedef {'postgres'|'mysql'|'sqlserver'} Dialect
  *
  * @typedef {{[key: number]: string}} Fields
  *
  *
  * @typedef Query
- * @property {number|null} limit
- * @property {Node|null} where
+ * @property {number|null} [limit]
+ * @property {Node|null} [where]
  *
  * @typedef {[Operator, ...any[]]} Node
  *
- * @typedef {string|number} Value
+ * @typedef {string|number|'nil'} Value
  *
  * @typedef {Node|Value} NodeChild
  *
@@ -40,7 +40,7 @@ module.exports = function generateSql(dialect, fields, query) {
 /**
  *
  * @param {Dialect} dialect
- * @param {number|null} limit
+ * @param {number|null|undefined} limit
  */
 function createLimitClause(dialect, limit) {
   if (!limit) {
@@ -58,7 +58,7 @@ function createLimitClause(dialect, limit) {
 /**
  *
  * @param {Dialect} dialect
- * @param {Node|null} where
+ * @param {Node|null|undefined} where
  * @param {Fields} fields
  */
 function createWhereClause(dialect, where, fields) {
@@ -102,6 +102,7 @@ function createTraverse(context) {
    */
   return /** @type {Traverser} */ function traverse(node, visitors) {
     if (!isNode(node)) {
+      // @ts-ignore
       return normalizeValue(node)
     }
 
@@ -118,6 +119,9 @@ function createTraverse(context) {
  * @param {Value} value
  */
 function normalizeValue(value) {
+  if (value === 'nil') {
+    return 'NULL'
+  }
   if (typeof value === 'string') {
     return `'${value}'`
   }
@@ -149,7 +153,18 @@ function createCodeGenerationVisitors(dialect, context) {
     '=': (results, nodeChildren) => {
       if (nodeChildren) {
         const [leftResult, rightResult] = results
-        return `${leftResult} = ${rightResult}`
+
+        /**
+         * @param {NodeChild} rightChild
+         */
+        function createOperand(rightChild) {
+          if (rightChild === 'nil') {
+            return 'IS'
+          }
+
+          return '='
+        }
+        return `${leftResult} ${createOperand(nodeChildren[1])} ${rightResult}`
       }
     },
     '!=': () => '',
