@@ -202,36 +202,50 @@ function createCodeGenerationVisitors(dialect, context) {
     },
     '=': (results, nodeChildren) => {
       if (nodeChildren) {
-        const [leftResult, rightResult] = results
+        const hasOneOperand = results.length === 2
+        if (hasOneOperand) {
+          const [leftResult, rightResult] = results
 
-        /**
-         * @param {NodeChild} rightChild
-         */
-        function createOperand(rightChild) {
-          if (rightChild === 'nil') {
-            return 'IS'
+          /**
+           * @param {NodeChild} rightChild
+           */
+          function createOperand(rightChild) {
+            if (rightChild === 'nil') {
+              return 'IS'
+            }
+
+            return '='
           }
-
-          return '='
+          return `${leftResult} ${createOperand(nodeChildren[1])} ${rightResult}`
         }
-        return `${leftResult} ${createOperand(nodeChildren[1])} ${rightResult}`
+
+        const [leftResult, ...restResults] = results
+
+        return `${leftResult} IN (${restResults.join(', ')})`
       }
     },
     '!=': (results, nodeChildren) => {
       if (nodeChildren) {
-        const [leftResult, rightResult] = results
+        const hasOneOperand = results.length === 2
+        if (hasOneOperand) {
+          const [leftResult, rightResult] = results
 
-        /**
-         * @param {NodeChild} rightChild
-         */
-        function createOperand(rightChild) {
-          if (rightChild === 'nil') {
-            return 'IS NOT'
+          /**
+           * @param {NodeChild} rightChild
+           */
+          function createOperand(rightChild) {
+            if (rightChild === 'nil') {
+              return 'IS NOT'
+            }
+
+            return '!='
           }
-
-          return '!='
+          return `${leftResult} ${createOperand(nodeChildren[1])} ${rightResult}`
         }
-        return `${leftResult} ${createOperand(nodeChildren[1])} ${rightResult}`
+
+        const [leftResult, ...restResults] = results
+
+        return `${leftResult} NOT IN (${restResults.join(', ')})`
       }
     },
     'is-empty': () => '',

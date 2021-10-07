@@ -1,6 +1,6 @@
 const generateSql = require('./index')
 
-test('test postgres with no query', () => {
+test('postgres with no query', () => {
   const dialect = 'postgres'
   const query = { limit: null, where: null }
   const fields = { 1: 'name', 2: 'location' }
@@ -8,7 +8,7 @@ test('test postgres with no query', () => {
   expect(generateSql(dialect, fields, query)).toEqual(`SELECT * FROM data;`)
 })
 
-test('test mysql with no query', () => {
+test('mysql with no query', () => {
   const dialect = 'mysql'
   const query = { limit: null, where: null }
   const fields = { 1: 'name', 2: 'location' }
@@ -16,7 +16,7 @@ test('test mysql with no query', () => {
   expect(generateSql(dialect, fields, query)).toEqual(`SELECT * FROM data;`)
 })
 
-test('test sqlserver with no query', () => {
+test('sqlserver with no query', () => {
   const dialect = 'sqlserver'
   const query = { limit: null, where: null }
   const fields = { 1: 'name', 2: 'location' }
@@ -24,7 +24,7 @@ test('test sqlserver with no query', () => {
   expect(generateSql(dialect, fields, query)).toEqual(`SELECT * FROM data;`)
 })
 
-test('test postgres limit', () => {
+test('postgres limit', () => {
   const dialect = 'postgres'
   const query = { limit: 10, where: null }
   const fields = { 1: 'name', 2: 'location' }
@@ -32,7 +32,7 @@ test('test postgres limit', () => {
   expect(generateSql(dialect, fields, query)).toEqual(`SELECT * FROM data LIMIT 10;`)
 })
 
-test('test mysql limit', () => {
+test('mysql limit', () => {
   const dialect = 'mysql'
   const query = { limit: 10, where: null }
   const fields = { 1: 'name', 2: 'location' }
@@ -40,7 +40,7 @@ test('test mysql limit', () => {
   expect(generateSql(dialect, fields, query)).toEqual(`SELECT * FROM data LIMIT 10;`)
 })
 
-test('test sqlserver limit', () => {
+test('sqlserver limit', () => {
   const dialect = 'sqlserver'
   const query = { limit: 10, where: null }
   const fields = { 1: 'name', 2: 'location' }
@@ -48,7 +48,7 @@ test('test sqlserver limit', () => {
   expect(generateSql(dialect, fields, query)).toEqual(`SELECT TOP 10 * FROM data;`)
 })
 
-test('test postgres query', () => {
+test('postgres query', () => {
   const dialect = 'postgres'
   /**
    * @type {import('./index').Query}
@@ -59,7 +59,7 @@ test('test postgres query', () => {
   expect(generateSql(dialect, fields, query)).toEqual(`SELECT * FROM data WHERE name = 'cam';`)
 })
 
-test('test mysql query', () => {
+test('mysql query', () => {
   const dialect = 'mysql'
   /**
    * @type {import('./index').Query}
@@ -70,7 +70,7 @@ test('test mysql query', () => {
   expect(generateSql(dialect, fields, query)).toEqual(`SELECT * FROM data WHERE name = 'cam';`)
 })
 
-test('test sqlserver query', () => {
+test('sqlserver query', () => {
   const dialect = 'mysql'
   /**
    * @type {import('./index').Query}
@@ -81,7 +81,7 @@ test('test sqlserver query', () => {
   expect(generateSql(dialect, fields, query)).toEqual(`SELECT * FROM data WHERE name = 'cam';`)
 })
 
-test('test postgres query and limit', () => {
+test('postgres query and limit', () => {
   const dialect = 'postgres'
   /**
    * @type {import('./index').Query}
@@ -94,7 +94,7 @@ test('test postgres query and limit', () => {
   )
 })
 
-test('test mysql query and limit', () => {
+test('mysql query and limit', () => {
   const dialect = 'mysql'
   /**
    * @type {import('./index').Query}
@@ -107,7 +107,7 @@ test('test mysql query and limit', () => {
   )
 })
 
-test('test sqlserver query and limit', () => {
+test('sqlserver query and limit', () => {
   const dialect = 'sqlserver'
   /**
    * @type {import('./index').Query}
@@ -120,7 +120,7 @@ test('test sqlserver query and limit', () => {
   )
 })
 
-test('test postgres field, =', () => {
+test('postgres field, =', () => {
   const dialect = 'postgres'
   /**
    * @type {import('./index').Query}
@@ -131,7 +131,7 @@ test('test postgres field, =', () => {
   expect(generateSql(dialect, fields, query)).toEqual(`SELECT * FROM data WHERE name = 'cam';`)
 })
 
-test('test mysql field, =, limit', () => {
+test('mysql field, =, limit', () => {
   expect(
     generateSql('mysql', { 1: 'id', 2: 'name' }, { where: ['=', ['field', 2], 'cam'], limit: 10 })
   ).toEqual("SELECT * FROM data WHERE name = 'cam' LIMIT 10;")
@@ -140,19 +140,19 @@ test('test mysql field, =, limit', () => {
 describe('test from requirements section', () => {
   const fields = { 1: 'id', 2: 'name', 3: 'date_joined', 4: 'age' }
 
-  test('test postgres field, = , nil', () => {
+  test('postgres field, = , nil', () => {
     expect(generateSql('postgres', fields, { where: ['=', ['field', 3], 'nil'] })).toEqual(
       'SELECT * FROM data WHERE date_joined IS NULL;'
     )
   })
 
-  test('test postgres field, >', () => {
+  test('postgres field, >', () => {
     expect(generateSql('postgres', fields, { where: ['>', ['field', 4], 35] })).toEqual(
       'SELECT * FROM data WHERE age > 35;'
     )
   })
 
-  test('test postgres field, <, =, and', () => {
+  test('postgres field, <, =, and', () => {
     expect(
       generateSql('postgres', fields, {
         where: ['and', ['<', ['field', 1], 5], ['=', ['field', 2], 'joe']],
@@ -160,7 +160,7 @@ describe('test from requirements section', () => {
     ).toEqual("SELECT * FROM data WHERE id < 5 AND name = 'joe';")
   })
 
-  test('test postgres field, !=, =, or', () => {
+  test('postgres field, !=, =, or', () => {
     expect(
       generateSql('postgres', fields, {
         where: ['or', ['!=', ['field', 3], '2015-11-01'], ['=', ['field', 1], 456]],
@@ -168,7 +168,7 @@ describe('test from requirements section', () => {
     ).toEqual("SELECT * FROM data WHERE date_joined != '2015-11-01' OR id = 456;")
   })
 
-  test('test nested and or', () => {
+  test('postgres nested and or', () => {
     expect(
       generateSql('postgres', fields, {
         where: [
@@ -180,7 +180,7 @@ describe('test from requirements section', () => {
     ).toEqual("SELECT * FROM data WHERE date_joined IS NOT NULL AND (age > 25 OR name = 'Jerry');")
   })
 
-  test('test nested or and', () => {
+  test('postgres nested or and', () => {
     expect(
       generateSql('postgres', fields, {
         where: [
@@ -190,5 +190,17 @@ describe('test from requirements section', () => {
         ],
       })
     ).toEqual("SELECT * FROM data WHERE date_joined IS NOT NULL OR (age > 25 AND name = 'Jerry');")
+  })
+
+  test('postgres = (IN)', () => {
+    expect(generateSql('postgres', fields, { where: ['=', ['field', 4], 25, 26, 27] })).toEqual(
+      'SELECT * FROM data WHERE age IN (25, 26, 27);'
+    )
+  })
+
+  test('postgres != (IN)', () => {
+    expect(generateSql('postgres', fields, { where: ['!=', ['field', 4], 25, 26, 27] })).toEqual(
+      'SELECT * FROM data WHERE age NOT IN (25, 26, 27);'
+    )
   })
 })
