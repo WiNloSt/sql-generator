@@ -30,7 +30,7 @@ module.exports = function generateSql(dialect, fields, query) {
   const limitClause = createLimitClause(dialect, query.limit)
   const whereClause = createWhereClause(dialect, query.where, fields)
   if (dialect === 'sqlserver') {
-    return `SELECT * ${limitClause}FROM data${whereClause};`
+    return `SELECT ${limitClause}* FROM data${whereClause};`
   }
 
   // `mysql` and `postgresql`
