@@ -369,4 +369,12 @@ describe('Bonus points', () => {
       `SELECT * FROM data WHERE "date_joined" IS NOT NULL OR "age" > 25 OR "name" = 'John';`
     )
   })
+
+  test('cancel out not', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: ['not', ['not', ['!=', ['field', 3], null]]],
+      })
+    ).toEqual(`SELECT * FROM data WHERE "date_joined" IS NOT NULL;`)
+  })
 })

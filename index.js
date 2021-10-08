@@ -321,6 +321,16 @@ function createTransformationVisitors(dialect, context) {
 
       return ['or', ...results]
     },
+    not(results) {
+      const node = results[0]
+      const [nodeType, child] = node
+      if (nodeType === 'not') {
+        // console.log('child', child)
+        return child
+      }
+
+      return ['not', node]
+    },
     'is-empty': (results) => {
       return ['=', results[0], null]
     },
