@@ -216,3 +216,37 @@ describe('test from requirements section', () => {
     ).toEqual(`SELECT * FROM data WHERE "date_joined" IS NOT NULL OR "age" > 25;`)
   })
 })
+
+describe('Test with fields', () => {
+  const fields = { 1: 'id', 2: 'name', 3: 'date_joined', 4: 'age' }
+
+  test('multiple conditions in or', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: [
+          'or',
+          ['!=', ['field', 3], 'nil'],
+          ['>', ['field', 4], 25],
+          ['=', ['field', 2], 'John'],
+        ],
+      })
+    ).toEqual(
+      `SELECT * FROM data WHERE "date_joined" IS NOT NULL OR "age" > 25 OR "name" = 'John';`
+    )
+  })
+
+  test('multiple conditions in and', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: [
+          'and',
+          ['!=', ['field', 3], 'nil'],
+          ['>', ['field', 4], 25],
+          ['=', ['field', 2], 'John'],
+        ],
+      })
+    ).toEqual(
+      `SELECT * FROM data WHERE "date_joined" IS NOT NULL AND "age" > 25 AND "name" = 'John';`
+    )
+  })
+})
