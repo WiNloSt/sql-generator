@@ -149,7 +149,7 @@ function isNode(node) {
 function createCodeGenerationVisitors(dialect, context) {
   return {
     and: (results, nodeChildren) => {
-      // 1 child
+      // 1 child is already handled in AST transformer
       // 2 or more child
       if (nodeChildren) {
         return results
@@ -171,7 +171,7 @@ function createCodeGenerationVisitors(dialect, context) {
       }
     },
     or: (results, nodeChildren) => {
-      // 1 child
+      // 1 child is already handled in AST transformer
       // 2 or more child
       if (nodeChildren) {
         return results
@@ -302,6 +302,14 @@ function createTransformationVisitors(dialect, context) {
       }
 
       return ['and', ...results]
+    },
+    or(results) {
+      const shouldFlattenNode = results.length === 1
+      if (shouldFlattenNode) {
+        return results[0]
+      }
+
+      return ['or', ...results]
     },
     value(value) {
       return value

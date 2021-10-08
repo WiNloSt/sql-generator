@@ -207,18 +207,42 @@ describe('test from requirements section', () => {
       'SELECT * FROM data WHERE "age" NOT IN (25, 26, 27);'
     )
   })
+})
 
-  test('single and operand', () => {
+describe('Test with fields', () => {
+  const fields = { 1: 'id', 2: 'name', 3: 'date_joined', 4: 'age' }
+
+  test('single nested and operand', () => {
     expect(
       generateSql('postgres', fields, {
         where: ['or', ['!=', ['field', 3], null], ['and', ['>', ['field', 4], 25]]],
       })
     ).toEqual(`SELECT * FROM data WHERE "date_joined" IS NOT NULL OR "age" > 25;`)
   })
-})
 
-describe('Test with fields', () => {
-  const fields = { 1: 'id', 2: 'name', 3: 'date_joined', 4: 'age' }
+  test('single nested or operand', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: ['and', ['!=', ['field', 3], null], ['or', ['>', ['field', 4], 25]]],
+      })
+    ).toEqual(`SELECT * FROM data WHERE "date_joined" IS NOT NULL AND "age" > 25;`)
+  })
+
+  test('single and operand', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: ['and', ['!=', ['field', 3], null]],
+      })
+    ).toEqual(`SELECT * FROM data WHERE "date_joined" IS NOT NULL;`)
+  })
+
+  test('single or operand', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: ['or', ['!=', ['field', 3], null]],
+      })
+    ).toEqual(`SELECT * FROM data WHERE "date_joined" IS NOT NULL;`)
+  })
 
   test('multiple conditions in or', () => {
     expect(
