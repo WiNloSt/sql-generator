@@ -16,7 +16,7 @@
  *
  * @typedef {'and'|'or'|'not'|'<'|'>'|'='|'!='|'is-empty'|'not-empty'} Operator
  *
- * @typedef {Operator|'field'} NodeType
+ * @typedef {Operator|'field'|'value'} NodeType
  */
 
 /**
@@ -74,7 +74,11 @@ function createWhereClause(dialect, where, fields) {
   const transformedWhere = traverse(where, transformationVisitors)
 
   const codeGenerationVisitors = createCodeGenerationVisitors(dialect, context)
-  return ` WHERE ${traverse(transformedWhere, codeGenerationVisitors)}`
+  const whereClause = traverse(transformedWhere, codeGenerationVisitors)
+  if (whereClause === true) {
+    return ''
+  }
+  return ` WHERE ${whereClause}`
 }
 
 /**
@@ -304,14 +308,22 @@ function createCodeGenerationVisitors(dialect, context) {
  * @return {Visitors}
  */
 function createTransformationVisitors(dialect, context) {
-  return {
+  /** @type {Visitors} */
+  const visitors = {
     and(results) {
       const shouldFlattenNode = results.length === 1
       if (shouldFlattenNode) {
         return results[0]
       }
 
-      return ['and', ...results]
+      const canShortCircuit = results.some((node) => {
+        return node === false
+      })
+      if (canShortCircuit) {
+        return false
+      }
+
+      return ['and', ...results.filter((node) => node !== true)]
     },
     or(results) {
       const shouldFlattenNode = results.length === 1
@@ -319,10 +331,21 @@ function createTransformationVisitors(dialect, context) {
         return results[0]
       }
 
-      return ['or', ...results]
+      const canShortCircuit = results.some((node) => {
+        return node === true
+      })
+      if (canShortCircuit) {
+        return true
+      }
+
+      return ['or', ...results.filter((node) => node !== false)]
     },
     not(results) {
       const node = results[0]
+      if (!isNode(node)) {
+        return !node
+      }
+
       const [nodeType, child] = node
       if (nodeType === 'not') {
         // console.log('child', child)
@@ -331,14 +354,57 @@ function createTransformationVisitors(dialect, context) {
 
       return ['not', node]
     },
+    '>': function (results) {
+      const [leftNode, rightNode] = results
+      if (!isNode(leftNode) && !isNode(rightNode)) {
+        return leftNode > rightNode
+      }
+
+      return ['>', ...results]
+    },
+    '<': function (results) {
+      const [leftNode, rightNode] = results
+      if (!isNode(leftNode) && !isNode(rightNode)) {
+        return leftNode < rightNode
+      }
+
+      return ['<', ...results]
+    },
+    '=': function (results) {
+      const [leftNode, rightNode] = results
+      if (!isNode(leftNode) && !isNode(rightNode)) {
+        return leftNode === rightNode
+      }
+
+      return ['=', ...results]
+    },
+    '!=': (results) => {
+      const [leftNode, rightNode] = results
+      if (!isNode(leftNode) && !isNode(rightNode)) {
+        return leftNode !== rightNode
+      }
+
+      return ['!=', ...results]
+    },
     'is-empty': (results) => {
-      return ['=', results[0], null]
+      const node = results[0]
+      if (isNode(node)) {
+        return ['=', node, null]
+      }
+
+      return node === null
     },
     'not-empty': (results) => {
-      return ['!=', results[0], null]
+      const node = results[0]
+      if (isNode(node)) {
+        return ['!=', node, null]
+      }
+
+      return node !== null
     },
     value(value) {
       return value
     },
   }
+  return visitors
 }

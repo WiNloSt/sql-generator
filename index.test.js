@@ -377,4 +377,162 @@ describe('Bonus points', () => {
       })
     ).toEqual(`SELECT * FROM data WHERE "date_joined" IS NOT NULL;`)
   })
+
+  test('sqlserver optimize constant boolean is-empty true', () => {
+    expect(generateSql('sqlserver', {}, { where: ['is-empty', null], limit: 10 })).toEqual(
+      'SELECT TOP 10 * FROM data;'
+    )
+  })
+
+  test('sqlserver optimize constant boolean is-empty false', () => {
+    expect(generateSql('sqlserver', {}, { where: ['is-empty', 'value'], limit: 10 })).toEqual(
+      'SELECT TOP 10 * FROM data WHERE false;'
+    )
+  })
+
+  test('mysql optimize constant boolean not-empty true', () => {
+    expect(generateSql('mysql', {}, { where: ['not-empty', 'value'], limit: 10 })).toEqual(
+      'SELECT * FROM data LIMIT 10;'
+    )
+  })
+
+  test('mysql optimize constant boolean not-empty false', () => {
+    expect(generateSql('mysql', {}, { where: ['not-empty', null], limit: 10 })).toEqual(
+      'SELECT * FROM data WHERE false LIMIT 10;'
+    )
+  })
+
+  test('postgres optimize constant boolean = true', () => {
+    expect(generateSql('postgres', {}, { where: ['=', 'value', 'value'], limit: 10 })).toEqual(
+      'SELECT * FROM data LIMIT 10;'
+    )
+  })
+
+  test('postgres optimize constant boolean = false', () => {
+    expect(generateSql('postgres', {}, { where: ['=', 'value', 'another'], limit: 10 })).toEqual(
+      'SELECT * FROM data WHERE false LIMIT 10;'
+    )
+  })
+
+  test('postgres optimize constant boolean = both are null', () => {
+    expect(generateSql('postgres', {}, { where: ['=', null, null], limit: 10 })).toEqual(
+      'SELECT * FROM data LIMIT 10;'
+    )
+  })
+
+  test('postgres optimize constant boolean != true', () => {
+    expect(generateSql('postgres', {}, { where: ['!=', 'value', 1], limit: 10 })).toEqual(
+      'SELECT * FROM data LIMIT 10;'
+    )
+  })
+
+  test('postgres optimize constant boolean != false', () => {
+    expect(generateSql('postgres', {}, { where: ['!=', 'value', 'value'], limit: 10 })).toEqual(
+      'SELECT * FROM data WHERE false LIMIT 10;'
+    )
+  })
+
+  test('postgres optimize constant boolean > true', () => {
+    expect(generateSql('postgres', {}, { where: ['>', 2, 1], limit: 10 })).toEqual(
+      'SELECT * FROM data LIMIT 10;'
+    )
+  })
+
+  test('postgres optimize constant boolean > false', () => {
+    expect(generateSql('postgres', {}, { where: ['>', 'a', 'b'], limit: 10 })).toEqual(
+      'SELECT * FROM data WHERE false LIMIT 10;'
+    )
+  })
+
+  test('postgres optimize constant boolean < true', () => {
+    expect(generateSql('postgres', {}, { where: ['<', 'a', 'b'], limit: 10 })).toEqual(
+      'SELECT * FROM data LIMIT 10;'
+    )
+  })
+
+  test('postgres optimize constant boolean < false', () => {
+    expect(generateSql('postgres', {}, { where: ['<', 2, 1], limit: 10 })).toEqual(
+      'SELECT * FROM data WHERE false LIMIT 10;'
+    )
+  })
+
+  test('postgres optimize constant boolean not true', () => {
+    expect(generateSql('postgres', {}, { where: ['not', ['<', 2, 1]], limit: 10 })).toEqual(
+      'SELECT * FROM data LIMIT 10;'
+    )
+  })
+
+  test('postgres optimize constant boolean not false', () => {
+    expect(generateSql('postgres', {}, { where: ['not', ['<', 'a', 'b']], limit: 10 })).toEqual(
+      'SELECT * FROM data WHERE false LIMIT 10;'
+    )
+  })
+
+  test('postgres and false', () => {
+    const fields = { 1: 'id' }
+    expect(
+      generateSql('postgres', fields, {
+        where: ['and', ['=', ['field', 1], 999], ['>', 'a', 'b']],
+        limit: 10,
+      })
+    ).toEqual('SELECT * FROM data WHERE false LIMIT 10;')
+
+    expect(
+      generateSql('postgres', fields, {
+        where: ['and', ['>', 'a', 'b'], ['=', ['field', 1], 999]],
+        limit: 10,
+      })
+    ).toEqual('SELECT * FROM data WHERE false LIMIT 10;')
+  })
+
+  test('postgres and true', () => {
+    const fields = { 1: 'id' }
+    expect(
+      generateSql('postgres', fields, {
+        where: ['and', ['=', ['field', 1], 999], ['<', 'a', 'b']],
+        limit: 10,
+      })
+    ).toEqual('SELECT * FROM data WHERE "id" = 999 LIMIT 10;')
+
+    expect(
+      generateSql('postgres', fields, {
+        where: ['and', ['<', 'a', 'b'], ['=', ['field', 1], 999]],
+        limit: 10,
+      })
+    ).toEqual('SELECT * FROM data WHERE "id" = 999 LIMIT 10;')
+  })
+
+  test('postgres or true', () => {
+    const fields = { 1: 'id' }
+    expect(
+      generateSql('postgres', fields, {
+        where: ['or', ['=', ['field', 1], 999], ['<', 'a', 'b']],
+        limit: 10,
+      })
+    ).toEqual('SELECT * FROM data LIMIT 10;')
+
+    expect(
+      generateSql('postgres', fields, {
+        where: ['or', ['<', 'a', 'b'], ['=', ['field', 1], 999]],
+        limit: 10,
+      })
+    ).toEqual('SELECT * FROM data LIMIT 10;')
+  })
+
+  test('postgres or false', () => {
+    const fields = { 1: 'id' }
+    expect(
+      generateSql('postgres', fields, {
+        where: ['or', ['=', ['field', 1], 999], ['=', ['field', 1], 888], ['>', 1, 2]],
+        limit: 10,
+      })
+    ).toEqual('SELECT * FROM data WHERE "id" = 999 OR "id" = 888 LIMIT 10;')
+
+    expect(
+      generateSql('postgres', fields, {
+        where: ['or', ['>', 1, 2], ['=', ['field', 1], 888], ['=', ['field', 1], 999]],
+        limit: 10,
+      })
+    ).toEqual('SELECT * FROM data WHERE "id" = 888 OR "id" = 999 LIMIT 10;')
+  })
 })
