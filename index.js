@@ -12,7 +12,7 @@
  *
  * @typedef {string|number|null} Value
  *
- * @typedef {Node|Value} NodeChild
+ * @typedef {Node} NodeChild
  *
  * @typedef {'and'|'or'|'not'|'<'|'>'|'='|'!='|'is-empty'|'not-empty'} Operator
  *
@@ -192,7 +192,15 @@ function createCodeGenerationVisitors(dialect, context) {
           .join(' OR ')
       }
     },
-    not: () => '',
+    not: (results, nodeChildren) => {
+      if (nodeChildren) {
+        const isClause = ['and', 'or'].includes(nodeChildren[0][0])
+        if (isClause) {
+          return `NOT (${results})`
+        }
+      }
+      return `NOT ${results}`
+    },
     '<': (results) => {
       const [leftResult, rightResult] = results
 

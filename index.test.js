@@ -289,4 +289,33 @@ describe('Test with fields', () => {
       })
     ).toEqual(`SELECT * FROM data WHERE "id" IS NOT NULL;`)
   })
+
+  test('postgres not', () => {
+    const dialect = 'postgres'
+    /**
+     * @type {import('./index').Query}
+     */
+    const query = { limit: 20, where: ['not', ['=', ['field', 1], 'cam']] }
+    const fields = { 1: 'name', 2: 'location' }
+
+    expect(generateSql(dialect, fields, query)).toEqual(
+      `SELECT * FROM data WHERE NOT "name" = 'cam' LIMIT 20;`
+    )
+  })
+
+  test('postgres not with and', () => {
+    const dialect = 'postgres'
+    /**
+     * @type {import('./index').Query}
+     */
+    const query = {
+      limit: 20,
+      where: ['not', ['and', ['=', ['field', 1], 'cam'], ['=', ['field', 2], 'Thailand']]],
+    }
+    const fields = { 1: 'name', 2: 'location' }
+
+    expect(generateSql(dialect, fields, query)).toEqual(
+      `SELECT * FROM data WHERE NOT ("name" = 'cam' AND "location" = 'Thailand') LIMIT 20;`
+    )
+  })
 })
