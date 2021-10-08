@@ -539,6 +539,7 @@ describe('Bonus points', () => {
 
 describe('macro', () => {
   test('simple macro', () => {
+    /** @type {import('./index').Macros} */
     const macros = { is_joe: ['=', ['field', 2], 'joe'] }
     expect(
       generateSql(
@@ -550,5 +551,46 @@ describe('macro', () => {
         macros
       )
     ).toEqual(`SELECT * FROM data WHERE "id" < 5 AND "name" = 'joe';`)
+  })
+
+  test('nested macros', () => {
+    /** @type {import('./index').Macros} */
+    const macros = {
+      is_joe: ['=', ['field', 2], 'joe'],
+      is_adult: ['>', ['field', 4], 18],
+      is_old_joe: ['and', ['macro', 'is_joe'], ['macro', 'is_adult']],
+    }
+
+    const fields = { 1: 'id', 2: 'name', 3: 'date_joined', 4: 'age' }
+    expect(
+      generateSql(
+        'postgres',
+        fields,
+        {
+          where: ['and', ['<', ['field', 1], 5], ['macro', 'is_old_joe']],
+        },
+        macros
+      )
+    ).toEqual(`SELECT * FROM data WHERE "id" < 5 AND "name" = 'joe' AND "age" > 18;`)
+  })
+
+  test('circular macros', () => {
+    /** @type {import('./index').Macros} */
+    const macros = {
+      is_good: ['and', ['macro', 'is_decent'], ['>', ['field', 4], 18]],
+      is_decent: ['and', ['macro', 'is_good'], ['<', ['field', 5], 5]],
+    }
+
+    const fields = { 1: 'id', 2: 'name', 3: 'date_joined', 4: 'age' }
+    expect(() => {
+      generateSql(
+        'postgres',
+        fields,
+        {
+          where: ['and', ['<', ['field', 1], 5], ['macro', 'is_old_joe']],
+        },
+        macros
+      )
+    }).toThrowError('Circular macros found.')
   })
 })

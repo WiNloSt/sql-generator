@@ -8,7 +8,7 @@
  * @property {number|null} [limit]
  * @property {Node|null} [where]
  *
- * @typedef {[Operator, ...any[]]} Node
+ * @typedef {[NodeType, ...any[]]} Node
  *
  * @typedef {string|number|null} Value
  *
@@ -75,9 +75,14 @@ function createWhereClause(dialect, where, fields, macros) {
     macros,
   }
   const traverse = createTraverse(context)
-  const whereWithMacro = traverse(where, createMacroVisitors(macros))
+
+  if (macros) {
+    /** @type {Node} */
+    const whereWithMacros = traverse(where, createMacroVisitors(normalizeMacros(macros)))
+    where = whereWithMacros
+  }
   const transformationVisitors = createTransformationVisitors(dialect, context)
-  const transformedWhere = traverse(whereWithMacro, transformationVisitors)
+  const transformedWhere = traverse(where, transformationVisitors)
 
   const codeGenerationVisitors = createCodeGenerationVisitors(dialect, context)
   const whereClause = traverse(transformedWhere, codeGenerationVisitors)
@@ -86,7 +91,70 @@ function createWhereClause(dialect, where, fields, macros) {
   }
   return ` WHERE ${whereClause}`
 }
+/**
+ * @param {Macros} macros
+ * @returns {Macros}
+ */
+function normalizeMacros(macros) {
+  const traverseMacro = createTraverseMacro(macros)
+  const normalizedMacro = Object.entries(macros)
+    .map(([macroKey, node]) => {
+      const traversedMacro = traverseMacro(node)
+      /** @type {[string, Node]} */
+      const returnValue = [macroKey, traversedMacro]
+      return returnValue
+    })
+    .reduce((macros, [macroKey, node]) => {
+      return {
+        ...macros,
+        [macroKey]: node,
+      }
+    }, {})
+  return normalizedMacro
+}
 
+/**
+ * @param {Macros} macros
+ */
+function createTraverseMacro(macros) {
+  const macroVisitors = createMacroVisitors(macros)
+  /**
+   * @param {Node} node
+   * @param {Visitors} macroVisitors
+   * @param {number} [depth] used to detect circular macros
+   * @returns {any}
+   */
+  return function traverseMacro(node, macroDepth = 0) {
+    // // check circular macros
+    if (macroDepth > Object.keys(macros).length) {
+      throw Error('Circular macros found.')
+    }
+
+    if (!isNode(node)) {
+      return node
+    }
+
+    const [nodeType, ...children] = node
+
+    const traversedChildren = children.map((child) => {
+      const visitedChild = getVisitor(nodeType, macroVisitors)([child])
+
+      // This is a hack because visitor is for post order traversal but we use it in a preorder traversal
+      if (nodeType === 'macro') {
+        return traverseMacro(visitedChild, macroDepth + 1)
+      }
+
+      return traverseMacro(visitedChild[1], macroDepth)
+    })
+
+    // This is a hack because visitor is for post order traversal but we use it in a preorder traversal
+    if (nodeType === 'macro') {
+      return traversedChildren[0]
+    }
+
+    return [nodeType, ...traversedChildren]
+  }
+}
 /**
  * @param {Macros | undefined} macros
  * @returns {Visitors}
@@ -99,14 +167,19 @@ function createMacroVisitors(macros) {
         return macros[macroName]
       }
     },
+    // This is not actually needed because it's not used in the macro traverser
+    // but I kept it here because I don't wanna fix the type.
     value(value) {
       return value
+    },
+    default(nodeType, results) {
+      return [nodeType, ...results]
     },
   }
 }
 
 /**
- * @typedef {{[key in NodeType]?: Visitor} & {value: ValueVisitor}} Visitors
+ * @typedef {{[key in NodeType]?: Visitor} & {value: ValueVisitor, default: (nodeType: NodeType, results: any) => any}} Visitors
  *
  * @typedef {(results: any[], nodeChildren?: NodeChild[]) => any} Visitor
  *
@@ -127,7 +200,7 @@ function createTraverse(context) {
    * @callback Traverser post order tree traversal using DFS
    * @param {Node} where
    * @param {Visitors} visitors
-   * @returns any
+   * @returns {any}
    */
   return /** @type {Traverser} */ function traverse(node, visitors) {
     if (!isNode(node)) {
@@ -145,19 +218,12 @@ function createTraverse(context) {
 }
 
 /**
- * @param {Operator} nodeType
+ * @param {NodeType} nodeType
  * @param {Visitors} visitors
  * @returns {Visitor}
  */
 function getVisitor(nodeType, visitors) {
-  /**
-   * @param {any} results
-   */
-  function defaultVisitor(results) {
-    return [nodeType, ...results]
-  }
-
-  return visitors[nodeType] || defaultVisitor
+  return visitors[nodeType] || ((results) => visitors.default(nodeType, results))
 }
 
 /**
@@ -313,6 +379,9 @@ function createCodeGenerationVisitors(dialect, context) {
         return quoteCharacter + context.fields[fieldId] + quoteCharacter
       }
     },
+    default(_, results) {
+      return results
+    },
     value(value) {
       if (value === null) {
         return 'NULL'
@@ -373,7 +442,6 @@ function createTransformationVisitors(dialect, context) {
 
       const [nodeType, child] = node
       if (nodeType === 'not') {
-        // console.log('child', child)
         return child
       }
 
@@ -429,6 +497,9 @@ function createTransformationVisitors(dialect, context) {
     },
     value(value) {
       return value
+    },
+    default(nodeType, results) {
+      return [nodeType, results]
     },
   }
   return visitors
