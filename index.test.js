@@ -273,4 +273,20 @@ describe('Test with fields', () => {
       `SELECT * FROM data WHERE "date_joined" IS NOT NULL AND "age" > 25 AND "name" = 'John';`
     )
   })
+
+  test('is-empty', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: ['is-empty', ['field', 1]],
+      })
+    ).toEqual(`SELECT * FROM data WHERE "id" IS NULL;`)
+  })
+
+  test('not-empty', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: ['not-empty', ['field', 1]],
+      })
+    ).toEqual(`SELECT * FROM data WHERE "id" IS NOT NULL;`)
+  })
 })

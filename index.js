@@ -251,8 +251,10 @@ function createCodeGenerationVisitors(dialect, context) {
         return `${leftResult} NOT IN (${restResults.join(', ')})`
       }
     },
-    'is-empty': () => '',
-    'not-empty': () => '',
+    // Implement in AST transformer
+    // 'is-empty': () => '',
+    // Implement in AST transformer
+    // 'not-empty': () => '',
     field: (_, nodeChildren) => {
       if (nodeChildren) {
         /** @type {number} */
@@ -310,6 +312,12 @@ function createTransformationVisitors(dialect, context) {
       }
 
       return ['or', ...results]
+    },
+    'is-empty': (results) => {
+      return ['=', results[0], null]
+    },
+    'not-empty': (results) => {
+      return ['!=', results[0], null]
     },
     value(value) {
       return value
