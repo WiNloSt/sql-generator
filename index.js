@@ -10,7 +10,7 @@
  *
  * @typedef {[Operator, ...any[]]} Node
  *
- * @typedef {string|number|'nil'} Value
+ * @typedef {string|number|null} Value
  *
  * @typedef {Node|Value} NodeChild
  *
@@ -213,7 +213,7 @@ function createCodeGenerationVisitors(dialect, context) {
            * @param {NodeChild} rightChild
            */
           function createOperand(rightChild) {
-            if (rightChild === 'nil') {
+            if (rightChild === null) {
               return 'IS'
             }
 
@@ -237,7 +237,7 @@ function createCodeGenerationVisitors(dialect, context) {
            * @param {NodeChild} rightChild
            */
           function createOperand(rightChild) {
-            if (rightChild === 'nil') {
+            if (rightChild === null) {
               return 'IS NOT'
             }
 
@@ -275,7 +275,7 @@ function createCodeGenerationVisitors(dialect, context) {
       }
     },
     value(value) {
-      if (value === 'nil') {
+      if (value === null) {
         return 'NULL'
       }
       if (typeof value === 'string') {

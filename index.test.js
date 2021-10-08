@@ -141,7 +141,7 @@ describe('test from requirements section', () => {
   const fields = { 1: 'id', 2: 'name', 3: 'date_joined', 4: 'age' }
 
   test('postgres field, = , nil', () => {
-    expect(generateSql('postgres', fields, { where: ['=', ['field', 3], 'nil'] })).toEqual(
+    expect(generateSql('postgres', fields, { where: ['=', ['field', 3], null] })).toEqual(
       'SELECT * FROM data WHERE "date_joined" IS NULL;'
     )
   })
@@ -173,7 +173,7 @@ describe('test from requirements section', () => {
       generateSql('postgres', fields, {
         where: [
           'and',
-          ['!=', ['field', 3], 'nil'],
+          ['!=', ['field', 3], null],
           ['or', ['>', ['field', 4], 25], ['=', ['field', 2], 'Jerry']],
         ],
       })
@@ -187,7 +187,7 @@ describe('test from requirements section', () => {
       generateSql('postgres', fields, {
         where: [
           'or',
-          ['!=', ['field', 3], 'nil'],
+          ['!=', ['field', 3], null],
           ['and', ['>', ['field', 4], 25], ['=', ['field', 2], 'Jerry']],
         ],
       })
@@ -211,7 +211,7 @@ describe('test from requirements section', () => {
   test('single and operand', () => {
     expect(
       generateSql('postgres', fields, {
-        where: ['or', ['!=', ['field', 3], 'nil'], ['and', ['>', ['field', 4], 25]]],
+        where: ['or', ['!=', ['field', 3], null], ['and', ['>', ['field', 4], 25]]],
       })
     ).toEqual(`SELECT * FROM data WHERE "date_joined" IS NOT NULL OR "age" > 25;`)
   })
@@ -225,7 +225,7 @@ describe('Test with fields', () => {
       generateSql('postgres', fields, {
         where: [
           'or',
-          ['!=', ['field', 3], 'nil'],
+          ['!=', ['field', 3], null],
           ['>', ['field', 4], 25],
           ['=', ['field', 2], 'John'],
         ],
@@ -240,7 +240,7 @@ describe('Test with fields', () => {
       generateSql('postgres', fields, {
         where: [
           'and',
-          ['!=', ['field', 3], 'nil'],
+          ['!=', ['field', 3], null],
           ['>', ['field', 4], 25],
           ['=', ['field', 2], 'John'],
         ],
