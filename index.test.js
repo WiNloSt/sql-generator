@@ -536,3 +536,19 @@ describe('Bonus points', () => {
     ).toEqual('SELECT * FROM data WHERE "id" = 888 OR "id" = 999 LIMIT 10;')
   })
 })
+
+describe('macro', () => {
+  test('simple macro', () => {
+    const macros = { is_joe: ['=', ['field', 2], 'joe'] }
+    expect(
+      generateSql(
+        'postgres',
+        { 1: 'id', 2: 'name' },
+        {
+          where: ['and', ['<', ['field', 1], 5], ['macro', 'is_joe']],
+        },
+        macros
+      )
+    ).toEqual(`SELECT * FROM data WHERE "id" < 5 AND "name" = 'joe';`)
+  })
+})

@@ -16,7 +16,9 @@
  *
  * @typedef {'and'|'or'|'not'|'<'|'>'|'='|'!='|'is-empty'|'not-empty'} Operator
  *
- * @typedef {Operator|'field'|'value'} NodeType
+ * @typedef {Operator|'field'|'macro'} NodeType
+ *
+ * @typedef {{[macro: string]: Node}} Macros
  */
 
 /**
@@ -24,11 +26,12 @@
  * @param {Dialect} dialect
  * @param {Fields} fields
  * @param {Query} query
+ * @param {Macros} [macros]
  * @returns any
  */
-module.exports = function generateSql(dialect, fields, query) {
+module.exports = function generateSql(dialect, fields, query, macros) {
   const limitClause = createLimitClause(dialect, query.limit)
-  const whereClause = createWhereClause(dialect, query.where, fields)
+  const whereClause = createWhereClause(dialect, query.where, fields, macros)
   if (dialect === 'sqlserver') {
     return `SELECT ${limitClause}* FROM data${whereClause};`
   }
@@ -60,18 +63,21 @@ function createLimitClause(dialect, limit) {
  * @param {Dialect} dialect
  * @param {Node|null|undefined} where
  * @param {Fields} fields
+ * @param {Macros} [macros]
  */
-function createWhereClause(dialect, where, fields) {
+function createWhereClause(dialect, where, fields, macros) {
   if (!where) {
     return ''
   }
   const context = {
     dialect,
     fields,
+    macros,
   }
   const traverse = createTraverse(context)
+  const whereWithMacro = traverse(where, createMacroVisitors(macros))
   const transformationVisitors = createTransformationVisitors(dialect, context)
-  const transformedWhere = traverse(where, transformationVisitors)
+  const transformedWhere = traverse(whereWithMacro, transformationVisitors)
 
   const codeGenerationVisitors = createCodeGenerationVisitors(dialect, context)
   const whereClause = traverse(transformedWhere, codeGenerationVisitors)
@@ -79,6 +85,24 @@ function createWhereClause(dialect, where, fields) {
     return ''
   }
   return ` WHERE ${whereClause}`
+}
+
+/**
+ * @param {Macros | undefined} macros
+ * @returns {Visitors}
+ */
+function createMacroVisitors(macros) {
+  return {
+    macro(results) {
+      if (macros) {
+        const macroName = results[0]
+        return macros[macroName]
+      }
+    },
+    value(value) {
+      return value
+    },
+  }
 }
 
 /**
@@ -91,6 +115,7 @@ function createWhereClause(dialect, where, fields) {
  * @typedef TraverserContext
  * @property {Dialect} dialect
  * @property {Fields} fields
+ * @property {Macros} [macros]
  */
 
 /**
