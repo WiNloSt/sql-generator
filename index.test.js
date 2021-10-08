@@ -319,3 +319,54 @@ describe('Test with fields', () => {
     )
   })
 })
+
+describe('Bonus points', () => {
+  const fields = { 1: 'id', 2: 'name', 3: 'date_joined', 4: 'age' }
+
+  test('flatten and with or', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: [
+          'and',
+          ['!=', ['field', 3], null],
+          ['or', ['>', ['field', 4], 25], ['=', ['field', 2], 'John']],
+          ['and', ['>', ['field', 4], 25], ['=', ['field', 2], 'John']],
+        ],
+      })
+    ).toEqual(
+      `SELECT * FROM data WHERE "date_joined" IS NOT NULL AND ("age" > 25 OR "name" = 'John') AND "age" > 25 AND "name" = 'John';`
+    )
+  })
+
+  test('flatten and', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: [
+          'and',
+          ['!=', ['field', 3], null],
+          [
+            'and',
+            ['>', ['field', 4], 25],
+            ['and', ['=', ['field', 2], 'John'], ['=', ['field', 1], 999]],
+          ],
+        ],
+      })
+    ).toEqual(
+      `SELECT * FROM data WHERE "date_joined" IS NOT NULL AND "age" > 25 AND "name" = 'John' AND "id" = 999;`
+    )
+  })
+
+  test('flatten or', () => {
+    expect(
+      generateSql('postgres', fields, {
+        where: [
+          'or',
+          ['!=', ['field', 3], null],
+          ['or', ['>', ['field', 4], 25], ['=', ['field', 2], 'John']],
+        ],
+      })
+    ).toEqual(
+      `SELECT * FROM data WHERE "date_joined" IS NOT NULL OR "age" > 25 OR "name" = 'John';`
+    )
+  })
+})
