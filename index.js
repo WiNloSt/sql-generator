@@ -136,23 +136,15 @@ function createTraverseMacro(macros) {
 
     const [nodeType, ...children] = node
 
-    const traversedChildren = children.map((child) => {
-      const visitedChild = getVisitor(nodeType, macroVisitors)([child])
-
-      // This is a hack because visitor is for post order traversal but we use it in a preorder traversal
+    const visitedChildren = getVisitor(nodeType, macroVisitors)(children)
+    const traversedChildren = visitedChildren.map((child) => {
       if (nodeType === 'macro') {
-        return traverseMacro(visitedChild, macroDepth + 1)
+        return traverseMacro(child, macroDepth + 1)
       }
-
-      return traverseMacro(visitedChild[1], macroDepth)
+      return traverseMacro(child, macroDepth)
     })
 
-    // This is a hack because visitor is for post order traversal but we use it in a preorder traversal
-    if (nodeType === 'macro') {
-      return traversedChildren[0]
-    }
-
-    return [nodeType, ...traversedChildren]
+    return traversedChildren
   }
 }
 /**
